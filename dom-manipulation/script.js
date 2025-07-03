@@ -1,19 +1,21 @@
-// Array of quote objects
+// The quote array
 let quotes = [
   { text: "Believe in yourself.", category: "Motivation" },
   { text: "Stay hungry, stay foolish.", category: "Inspiration" },
 ];
 
-// Function to show a random quote from the array
-function showRandomQuote() {
+// Step 2: displayRandomQuote function (named exactly)
+function displayRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const quote = quotes[randomIndex];
   const quoteDisplay = document.getElementById("quoteDisplay");
-  quoteDisplay.textContent = `"${quote.text}" - ${quote.category}`;
+  quoteDisplay.innerHTML = `"${quote.text}" - ${quote.category}`;
 }
 
-// Add event listener to the "Show New Quote" button
-document.getElementById("newQuote").addEventListener("click", showRandomQuote);
+//Add event listener for the "Show New Quote" button
+document
+  .getElementById("newQuote")
+  .addEventListener("click", displayRandomQuote);
 
 // Function to add a new quote
 function addQuote() {
@@ -25,7 +27,7 @@ function addQuote() {
 
   if (newText && newCategory) {
     quotes.push({ text: newText, category: newCategory });
-    showRandomQuote();
+    displayRandomQuote();
     textInput.value = "";
     categoryInput.value = "";
   } else {
