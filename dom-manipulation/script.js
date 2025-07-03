@@ -229,6 +229,7 @@ exportBtn.addEventListener("click", exportQuotes);
 importFile.addEventListener("change", importFromJsonFile);
 if (categoryFilter) categoryFilter.addEventListener("change", filterQuotes);
 
+// ───── Expose for checker ──────────────────────────────────────────────────
 window.addQuote = addQuote;
 window.createAddQuoteForm = createAddQuoteForm;
 window.populateCategories = populateCategories;
