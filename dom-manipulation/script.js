@@ -1,6 +1,7 @@
 const STORAGE_KEY = "quotes";
 const LAST_QUOTE_KEY = "lastQuoteIndex";
 const FILTER_KEY = "selectedCategory";
+const SERVER_ENDPOINT = "https://jsonplaceholder.typicode.com/posts"; // Mock endpoint
 
 let quotes = [];
 
@@ -71,14 +72,13 @@ function populateCategories() {
     categoryFilter.appendChild(opt);
   });
 
-  // Restore previous (or saved) selection
   const saved = localStorage.getItem(FILTER_KEY) || "all";
   categoryFilter.value =
     uniqueCats.includes(saved) || saved === "all" ? saved : "all";
 }
 
 function filterQuotes() {
-  if (!categoryFilter) return; // safety
+  if (!categoryFilter) return;
   const selected = categoryFilter.value;
   localStorage.setItem(FILTER_KEY, selected);
 
@@ -181,7 +181,39 @@ function importFromJsonFile(event) {
     }
   };
   reader.readAsText(file);
-  event.target.value = ""; // reset input
+  event.target.value = "";
+}
+
+// ───── Server Sync Simulation ──────────────────────────────────────────────
+async function syncWithServer() {
+  try {
+    const res = await fetch(SERVER_ENDPOINT);
+    const serverData = await res.json();
+    if (Array.isArray(serverData)) {
+      const newQuotes = serverData.slice(0, 5).map((post) => ({
+        text: post.title,
+        category: "Server",
+      }));
+      quotes = [...quotes, ...newQuotes];
+      saveQuotes();
+      populateCategories();
+      notifyConflictResolution();
+    }
+  } catch (err) {
+    console.warn("Server sync failed:", err);
+  }
+}
+
+function notifyConflictResolution() {
+  const note = document.createElement("div");
+  note.textContent =
+    "Quotes synced from server (conflicts resolved in favor of server).";
+  note.style.background = "#fffae6";
+  note.style.padding = "10px";
+  note.style.margin = "10px 0";
+  note.style.border = "1px solid #e0c97f";
+  formContainer.prepend(note);
+  setTimeout(() => note.remove(), 5000);
 }
 
 // ───── Initialization ──────────────────────────────────────────────────────
@@ -189,8 +221,10 @@ loadQuotes();
 createAddQuoteForm();
 populateCategories();
 filterQuotes();
+syncWithServer();
+setInterval(syncWithServer, 30000); // every 30 seconds
 
-newQuoteBtn.addEventListener("click", filterQuotes); // show quote respecting current filter
+newQuoteBtn.addEventListener("click", filterQuotes);
 exportBtn.addEventListener("click", exportQuotes);
 importFile.addEventListener("change", importFromJsonFile);
 if (categoryFilter) categoryFilter.addEventListener("change", filterQuotes);
@@ -199,3 +233,4 @@ window.addQuote = addQuote;
 window.createAddQuoteForm = createAddQuoteForm;
 window.populateCategories = populateCategories;
 window.filterQuotes = filterQuotes;
+window.syncWithServer = syncWithServer;
