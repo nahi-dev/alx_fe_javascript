@@ -43,3 +43,4 @@ function addQuote(e) {
 
 newQuoteBtn.addEventListener("click", showRandomQuote);
 addQuoteForm.addEventListener("submit", addQuote);
+window.addQuote = addQuote;
