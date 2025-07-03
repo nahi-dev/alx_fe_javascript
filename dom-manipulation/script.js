@@ -5,10 +5,13 @@ let quotes = [];
 
 const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteBtn = document.getElementById("newQuote");
+const addQuoteForm = document.getElementById("addQuoteForm");
+const newQuoteText = document.getElementById("newQuoteText");
+const newQuoteCategory = document.getElementById("newQuoteCategory");
 const exportBtn = document.getElementById("exportBtn");
 const importFile = document.getElementById("importFile");
 
-// Load quotes from localStorage or fallback to default
+// Load quotes from localStorage or defaults
 function loadQuotes() {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
@@ -62,19 +65,22 @@ function showRandomQuote() {
   const index = Math.floor(Math.random() * quotes.length);
   const q = quotes[index];
   quoteDisplay.innerHTML = `"${q.text}" — ${q.category}`;
-
-  // Save last shown quote index in sessionStorage
   sessionStorage.setItem(LAST_QUOTE_KEY, index);
 }
 
-function addQuote(text, category) {
+function addQuote(event) {
+  event.preventDefault();
+  const text = newQuoteText.value.trim();
+  const category = newQuoteCategory.value.trim();
   if (!text || !category) return;
   quotes.push({ text, category });
   saveQuotes();
+  newQuoteText.value = "";
+  newQuoteCategory.value = "";
   showRandomQuote();
 }
 
-// Export quotes as JSON file
+// Export quotes to JSON file
 function exportQuotes() {
   const blob = new Blob([JSON.stringify(quotes, null, 2)], {
     type: "application/json",
@@ -99,7 +105,6 @@ function importFromJsonFile(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (!Array.isArray(imported)) throw new Error("Invalid format");
-      // Optional: Validate each object has text and category
       for (const q of imported) {
         if (typeof q.text !== "string" || typeof q.category !== "string") {
           alert("Invalid quote format in JSON");
@@ -116,16 +121,15 @@ function importFromJsonFile(event) {
   };
   reader.readAsText(file);
 
-  // Reset input so the same file can be uploaded again if needed
-  event.target.value = "";
+  event.target.value = ""; // reset input so same file can be uploaded again
 }
 
-// Initialization
 loadQuotes();
 showRandomQuote();
 
 newQuoteBtn.addEventListener("click", showRandomQuote);
+addQuoteForm.addEventListener("submit", addQuote);
 exportBtn.addEventListener("click", exportQuotes);
 importFile.addEventListener("change", importFromJsonFile);
 
-// If you want the addQuote form as before, add it and call addQuote(text, category) appropriately
+window.addQuote = addQuote;
