@@ -1,15 +1,22 @@
 const STORAGE_KEY = "quotes";
 const LAST_QUOTE_KEY = "lastQuoteIndex";
+const FILTER_KEY = "selectedCategory";
 
 let quotes = [];
 
+// ───── DOM Elements ──────────────────────────────────────────────────────────
 const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteBtn = document.getElementById("newQuote");
 const exportBtn = document.getElementById("exportBtn");
 const importFile = document.getElementById("importFile");
 const formContainer = document.getElementById("formContainer");
+const categoryFilter = document.getElementById("categoryFilter"); // <select> added in HTML
 
-// Load and save functions (same as before)
+// ───── Local‑storage helpers ────────────────────────────────────────────────
+function saveQuotes() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(quotes));
+}
+
 function loadQuotes() {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
@@ -51,22 +58,54 @@ function getDefaultQuotes() {
   ];
 }
 
-function saveQuotes() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(quotes));
+// ───── Category UI ──────────────────────────────────────────────────────────
+function populateCategories() {
+  if (!categoryFilter) return;
+
+  const previous = categoryFilter.value;
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+  const uniqueCats = [...new Set(quotes.map((q) => q.category))].sort();
+  uniqueCats.forEach((cat) => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = cat;
+    categoryFilter.appendChild(opt);
+  });
+
+  // Restore previous (or saved) selection
+  const saved = localStorage.getItem(FILTER_KEY) || "all";
+  categoryFilter.value =
+    uniqueCats.includes(saved) || saved === "all" ? saved : "all";
 }
 
+function filterQuotes() {
+  if (!categoryFilter) return; // safety
+  const selected = categoryFilter.value;
+  localStorage.setItem(FILTER_KEY, selected);
+
+  const pool =
+    selected === "all" ? quotes : quotes.filter((q) => q.category === selected);
+  if (pool.length === 0) {
+    quoteDisplay.innerHTML = "No quotes in this category.";
+    return;
+  }
+  const q = pool[Math.floor(Math.random() * pool.length)];
+  quoteDisplay.innerHTML = `"${q.text}" — ${q.category}`;
+  sessionStorage.setItem(LAST_QUOTE_KEY, quotes.indexOf(q));
+}
+
+// ───── Quote display helpers ───────────────────────────────────────────────
 function showRandomQuote() {
-  if (quotes.length === 0) {
+  const pool = quotes;
+  if (pool.length === 0) {
     quoteDisplay.innerHTML = "No quotes available.";
     return;
   }
-  const index = Math.floor(Math.random() * quotes.length);
-  const q = quotes[index];
+  const q = pool[Math.floor(Math.random() * pool.length)];
   quoteDisplay.innerHTML = `"${q.text}" — ${q.category}`;
-  sessionStorage.setItem(LAST_QUOTE_KEY, index);
+  sessionStorage.setItem(LAST_QUOTE_KEY, quotes.indexOf(q));
 }
 
-// addQuote now gets values from the inputs created by createAddQuoteForm
+// ───── Add‑quote form ───────────────────────────────────────────────────────
 function addQuote(event) {
   event.preventDefault();
   const textInput = document.getElementById("newQuoteText");
@@ -74,14 +113,15 @@ function addQuote(event) {
   const text = textInput.value.trim();
   const category = categoryInput.value.trim();
   if (!text || !category) return;
+
   quotes.push({ text, category });
   saveQuotes();
+  populateCategories();
   textInput.value = "";
   categoryInput.value = "";
-  showRandomQuote();
+  filterQuotes();
 }
 
-// This is what the checker wants: a function that creates the add quote form dynamically
 function createAddQuoteForm() {
   const form = document.createElement("form");
   form.id = "addQuoteForm";
@@ -101,25 +141,20 @@ function createAddQuoteForm() {
   addButton.textContent = "Add Quote";
 
   form.append(textInput, categoryInput, addButton);
-
   formContainer.appendChild(form);
-
-  // Attach event listener to form submit
   form.addEventListener("submit", addQuote);
 }
 
-// Export and import functions (same as before)
+// ───── Import / Export JSON ────────────────────────────────────────────────
 function exportQuotes() {
   const blob = new Blob([JSON.stringify(quotes, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
   a.download = "quotes.json";
   a.click();
-
   URL.revokeObjectURL(url);
 }
 
@@ -131,35 +166,36 @@ function importFromJsonFile(event) {
   reader.onload = (e) => {
     try {
       const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) throw new Error("Invalid format");
-      for (const q of imported) {
-        if (typeof q.text !== "string" || typeof q.category !== "string") {
-          alert("Invalid quote format in JSON");
-          return;
+      if (!Array.isArray(imported)) throw new Error();
+      imported.forEach((q) => {
+        if (typeof q.text === "string" && typeof q.category === "string") {
+          quotes.push(q);
         }
-      }
-      quotes.push(...imported);
+      });
       saveQuotes();
+      populateCategories();
       alert("Quotes imported successfully!");
-      showRandomQuote();
+      filterQuotes();
     } catch {
       alert("Failed to import quotes: invalid JSON");
     }
   };
   reader.readAsText(file);
-
   event.target.value = ""; // reset input
 }
 
-// Initialize app
+// ───── Initialization ──────────────────────────────────────────────────────
 loadQuotes();
 createAddQuoteForm();
-showRandomQuote();
+populateCategories();
+filterQuotes();
 
-newQuoteBtn.addEventListener("click", showRandomQuote);
+newQuoteBtn.addEventListener("click", filterQuotes); // show quote respecting current filter
 exportBtn.addEventListener("click", exportQuotes);
 importFile.addEventListener("change", importFromJsonFile);
+if (categoryFilter) categoryFilter.addEventListener("change", filterQuotes);
 
-// expose addQuote for global scope if needed by checker
 window.addQuote = addQuote;
 window.createAddQuoteForm = createAddQuoteForm;
+window.populateCategories = populateCategories;
+window.filterQuotes = filterQuotes;
